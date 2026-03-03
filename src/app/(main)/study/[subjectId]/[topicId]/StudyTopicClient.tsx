@@ -17,14 +17,15 @@ interface Props {
 
 export default function StudyTopicClient({ subject, topic, content, questions }: Props) {
   const [quizStarted, setQuizStarted] = useState(false);
+  const [quizFinished, setQuizFinished] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState({ correct: 0, total: 0 });
   const markTopicStudied = useProgressStore((s) => s.markTopicStudied);
-  const isTopicStudied = useProgressStore((s) => s.isTopicStudied);
+  const studiedTopics = useProgressStore((s) => s.studiedTopics);
   const addAnswer = useProgressStore((s) => s.addAnswer);
   const hasHydrated = useProgressStore((s) => s._hasHydrated);
 
-  const studied = hasHydrated && isTopicStudied(topic.id);
+  const studied = hasHydrated && studiedTopics.some((t) => t.topicId === topic.id);
   const color = getSubjectColor(subject.name);
 
   const handleMarkStudied = () => {
@@ -50,15 +51,21 @@ export default function StudyTopicClient({ subject, topic, content, questions }:
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      setQuizStarted(false);
+      // Last question answered and user clicked "next" -> show results
+      setQuizFinished(true);
     }
   };
 
-  const isQuizFinished = quizStarted && results.total === questions.length && questions.length > 0;
+  const resetQuiz = () => {
+    setQuizStarted(false);
+    setQuizFinished(false);
+    setCurrentIndex(0);
+    setResults({ correct: 0, total: 0 });
+  };
 
   // Quiz results screen
-  if (isQuizFinished) {
-    const percentage = Math.round((results.correct / results.total) * 100);
+  if (quizFinished) {
+    const percentage = results.total > 0 ? Math.round((results.correct / results.total) * 100) : 0;
     return (
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-xl shadow-sm border border-border p-8 text-center">
@@ -70,13 +77,13 @@ export default function StudyTopicClient({ subject, topic, content, questions }:
           <p className="text-gray-500 mb-6">正答率 {percentage}%</p>
           <div className="flex gap-3 justify-center">
             <button
-              onClick={() => { setQuizStarted(false); setCurrentIndex(0); setResults({ correct: 0, total: 0 }); }}
+              onClick={resetQuiz}
               className="px-6 py-2.5 bg-gray-100 rounded-lg font-medium hover:bg-gray-200 transition-colors"
             >
               教科書に戻る
             </button>
             <button
-              onClick={() => { setCurrentIndex(0); setResults({ correct: 0, total: 0 }); }}
+              onClick={() => { setQuizFinished(false); setCurrentIndex(0); setResults({ correct: 0, total: 0 }); }}
               className="px-6 py-2.5 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors"
             >
               もう一度
@@ -93,7 +100,7 @@ export default function StudyTopicClient({ subject, topic, content, questions }:
       <div className="max-w-2xl mx-auto">
         <div className="mb-4 flex items-center gap-3">
           <button
-            onClick={() => { setQuizStarted(false); setCurrentIndex(0); setResults({ correct: 0, total: 0 }); }}
+            onClick={resetQuiz}
             className="text-sm text-gray-500 hover:text-gray-700"
           >
             ← 戻る
@@ -179,7 +186,7 @@ export default function StudyTopicClient({ subject, topic, content, questions }:
 
         {questions.length > 0 ? (
           <button
-            onClick={() => { setQuizStarted(true); setCurrentIndex(0); setResults({ correct: 0, total: 0 }); }}
+            onClick={() => { setQuizStarted(true); setQuizFinished(false); setCurrentIndex(0); setResults({ correct: 0, total: 0 }); }}
             className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors"
           >
             確認テストを始める
