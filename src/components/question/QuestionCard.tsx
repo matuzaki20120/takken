@@ -164,7 +164,7 @@ export default function QuestionCard({
               onClick={handleNext}
               className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors"
             >
-              次の問題へ →
+              {questionIndex < totalQuestions - 1 ? '次の問題へ →' : '結果を見る'}
             </button>
           </>
         )}
