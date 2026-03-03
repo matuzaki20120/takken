@@ -63,7 +63,7 @@ export default function ReviewClient({ incorrectQuestions, questionStats }: Prop
           <div className="flex-1 bg-gray-200 rounded-full h-2">
             <div
               className="bg-primary h-2 rounded-full transition-all"
-              style={{ width: `${(currentIndex / questions.length) * 100}%` }}
+              style={{ width: `${(results.total / questions.length) * 100}%` }}
             />
           </div>
           <span className="text-sm text-gray-500 tabular-nums">
