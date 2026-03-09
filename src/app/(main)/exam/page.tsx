@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { useProgressStore } from '@/lib/stores/progress';
+import { ALL_QUESTIONS } from '@/lib/data/questions';
 import QuestionCard from '@/components/question/QuestionCard';
 import type { Question } from '@/types/database';
 
@@ -18,7 +18,6 @@ export default function ExamPage() {
   const [finished, setFinished] = useState(false);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const supabase = createClient();
   const addAnswer = useProgressStore((s) => s.addAnswer);
 
   const finishExam = useCallback(() => {
@@ -41,27 +40,14 @@ export default function ExamPage() {
     }
   }, [started, finished, finishExam]);
 
-  const startExam = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('questions')
-      .select('*, subject:subjects(*), topic:topics(*)')
-      .order('question_number');
-
-    if (error || !data) {
-      console.error(error);
-      setLoading(false);
-      return;
-    }
-
-    const shuffled = data.sort(() => Math.random() - 0.5).slice(0, EXAM_QUESTIONS);
+  const startExam = () => {
+    const shuffled = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, EXAM_QUESTIONS);
     setQuestions(shuffled);
     setCurrentIndex(0);
     setAnswers(new Map());
     setTimeLeft(EXAM_DURATION);
     setFinished(false);
     setStarted(true);
-    setLoading(false);
   };
 
   const handleAnswer = (questionId: string, selectedAnswer: number, isCorrect: boolean) => {
@@ -244,7 +230,7 @@ export default function ExamPage() {
           disabled={loading}
           className="w-full bg-primary text-white py-4 rounded-xl font-bold text-lg hover:bg-primary-dark transition-colors disabled:opacity-50"
         >
-          {loading ? '準備中...' : '試験を開始する'}
+          試験を開始する
         </button>
       </div>
     </div>

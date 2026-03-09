@@ -1,49 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useMemo } from 'react';
 import { useProgressStore } from '@/lib/stores/progress';
+import { ALL_QUESTIONS } from '@/lib/data/questions';
 import { getSubjectColor } from '@/lib/utils/subjects';
-import type { Question } from '@/types/database';
 
 export default function QuizPage() {
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState(() =>
+    [...ALL_QUESTIONS].sort(() => Math.random() - 0.5)
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentChoiceIndex, setCurrentChoiceIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [stats, setStats] = useState({ correct: 0, total: 0 });
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
   const addAnswer = useProgressStore((s) => s.addAnswer);
 
-  useEffect(() => {
-    loadQuestions();
-  }, []);
-
-  const loadQuestions = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('questions')
-      .select('*, subject:subjects(*), topic:topics(*)')
-      .order('question_number');
-
-    if (data) {
-      const shuffled = data.sort(() => Math.random() - 0.5);
-      setQuestions(shuffled);
-      setCurrentIndex(0);
-      setCurrentChoiceIndex(0);
-      setStats({ correct: 0, total: 0 });
-    }
-    setLoading(false);
+  const resetQuestions = () => {
+    setQuestions([...ALL_QUESTIONS].sort(() => Math.random() - 0.5));
+    setCurrentIndex(0);
+    setCurrentChoiceIndex(0);
+    setStats({ correct: 0, total: 0 });
   };
-
-  if (loading) {
-    return (
-      <div className="max-w-lg mx-auto text-center py-12">
-        <p className="text-gray-500">読み込み中...</p>
-      </div>
-    );
-  }
 
   if (questions.length === 0) {
     return (
@@ -66,11 +43,10 @@ export default function QuizPage() {
     }));
     setShowAnswer(true);
 
-    // Save to progress store (record per-question on last choice)
     if (currentChoiceIndex === question.choices.length - 1) {
       addAnswer({
         questionId: question.id,
-        selectedAnswer: question.correct_answer, // quiz mode doesn't have traditional selection
+        selectedAnswer: question.correct_answer,
         isCorrect: isActuallyCorrect,
         mode: 'quiz',
         topicId: question.topic_id,
@@ -87,7 +63,7 @@ export default function QuizPage() {
       setCurrentIndex((prev) => prev + 1);
       setCurrentChoiceIndex(0);
     } else {
-      loadQuestions();
+      resetQuestions();
     }
   };
 
@@ -101,7 +77,6 @@ export default function QuizPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
-        {/* Question header */}
         <div className="px-5 py-3 border-b border-border flex items-center gap-3">
           {question.subject && subjectColor && (
             <span className={`text-xs px-2 py-0.5 rounded-full ${subjectColor.bg} ${subjectColor.text}`}>
@@ -113,14 +88,12 @@ export default function QuizPage() {
           </span>
         </div>
 
-        {/* Question text (abbreviated) */}
         <div className="px-5 py-3 bg-surface border-b border-border">
           <p className="text-sm text-gray-600 line-clamp-3">
             {question.question_text}
           </p>
         </div>
 
-        {/* Choice to evaluate */}
         <div className="px-5 py-6">
           <div className="flex items-start gap-3 mb-6">
             <span className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { useProgressStore } from '@/lib/stores/progress';
+import { getQuestionsByFilters } from '@/lib/data/questions';
 import QuestionCard from '@/components/question/QuestionCard';
 import { getSubjectColor } from '@/lib/utils/subjects';
 import type { Subject, Topic, Question } from '@/types/database';
@@ -27,41 +27,26 @@ export default function PracticeClient({ subjects, topics, years }: Props) {
   });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [started, setStarted] = useState(false);
   const [results, setResults] = useState<{ correct: number; total: number }>({ correct: 0, total: 0 });
-  const supabase = createClient();
   const addAnswer = useProgressStore((s) => s.addAnswer);
 
   const filteredTopics = filters.subjectId
     ? topics.filter((t) => t.subject_id === filters.subjectId)
     : [];
 
-  const startPractice = useCallback(async () => {
-    setLoading(true);
-    let query = supabase
-      .from('questions')
-      .select('*, subject:subjects(*), topic:topics(*)')
-      .order('question_number');
+  const startPractice = useCallback(() => {
+    const data = getQuestionsByFilters({
+      subjectId: filters.subjectId,
+      topicId: filters.topicId,
+      year: filters.year,
+    });
 
-    if (filters.subjectId) query = query.eq('subject_id', filters.subjectId);
-    if (filters.topicId) query = query.eq('topic_id', filters.topicId);
-    if (filters.year) query = query.eq('year', filters.year);
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error(error);
-      setLoading(false);
-      return;
-    }
-
-    setQuestions(data ?? []);
+    setQuestions(data);
     setCurrentIndex(0);
     setResults({ correct: 0, total: 0 });
     setStarted(true);
-    setLoading(false);
-  }, [filters, supabase]);
+  }, [filters]);
 
   const handleAnswer = (questionId: string, selectedAnswer: number, isCorrect: boolean) => {
     setResults((prev) => ({
@@ -257,10 +242,9 @@ export default function PracticeClient({ subjects, topics, years }: Props) {
       {/* Start button */}
       <button
         onClick={startPractice}
-        disabled={loading}
-        className="w-full bg-primary text-white py-4 rounded-xl font-bold text-lg hover:bg-primary-dark transition-colors disabled:opacity-50"
+        className="w-full bg-primary text-white py-4 rounded-xl font-bold text-lg hover:bg-primary-dark transition-colors"
       >
-        {loading ? '読み込み中...' : '演習を開始する'}
+        演習を開始する
       </button>
     </div>
   );
